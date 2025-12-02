@@ -2,10 +2,10 @@ from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
 from langchain_ollama import ChatOllama
 
-
 # =====================================================
 # 1. STATE (SHARED MEMORY)
 # =====================================================
+
 class ArticleState(TypedDict):
     topic: str
     research_notes: List[str]
@@ -13,15 +13,15 @@ class ArticleState(TypedDict):
     revision_count: int
     next_step: str
 
+# =====================================================
+# 2. LLM SETUP
+# =====================================================
 
-# =====================================================
-# 2. LOCAL LLM (OLLAMA)
-# =====================================================
 llm = ChatOllama(
     model="llama3.1:8b",
-    temperature=0.2
+    temperature=0.5,
+    max_tokens=1000
 )
-
 
 # =====================================================
 # 3. AGENTS
@@ -31,7 +31,7 @@ def research_agent(state: ArticleState):
 
     prompt = f"""
     Research the topic: {state['topic']}
-    Provide exactly 5 short bullet points.
+    Provide exactly 3 short bullet points and talk about Minecraft , Valorant, and any other game.
     """
 
     response = llm.invoke(prompt)
@@ -79,8 +79,6 @@ def supervisor(state: ArticleState):
     print(f"\n[Supervisor] Next step → {state['next_step']}")
     return state
 
-
-# ✅ ROUTER FUNCTION (REQUIRED BY NEW LANGGRAPH)
 def route_next_step(state: ArticleState):
     return state["next_step"]
 
@@ -102,7 +100,7 @@ graph.add_conditional_edges(
     route_next_step,
     {
         "writer": "writer",
-        "rewrite": "writer",  # ✅ conditional loop
+        "rewrite": "writer",  
         "end": END
     }
 )
@@ -110,10 +108,6 @@ graph.add_conditional_edges(
 graph.set_entry_point("research")
 app = graph.compile()
 
-
-# =====================================================
-# 6. SAVE ARCHITECTURE GRAPH
-# =====================================================
 def save_architecture():
     png = app.get_graph().draw_mermaid_png()
     with open("architecture.png", "wb") as f:
@@ -121,10 +115,6 @@ def save_architecture():
     print("\n[System] architecture.png saved")
 
 
-
-# =====================================================
-# 7. RUN SYSTEM
-# =====================================================
 if __name__ == "__main__":
     save_architecture()
 
@@ -140,7 +130,5 @@ if __name__ == "__main__":
 
     print("\n======= FINAL ARTICLE =======\n")
     print(final_state["article"])
-
-    print("\n======= SUMMARY =======")
+    print("="*30)
     print("Revisions:", final_state["revision_count"])
-    print("✅ Run completed successfully")
